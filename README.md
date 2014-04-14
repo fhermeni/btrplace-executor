@@ -45,5 +45,10 @@ to make the jar:
 If the build succeeded, the resulting jar will be automatically
 installed in your local maven repository and available in the `target` sub-folder.
 
+## Usage ##
+
+Have a look at the `Executor` class. You will have to provide custom `actuators` to make the abstract
+actions of BtrPlace fit your environment.
+
 ## Copyright ##
 Copyright (c) 2013 University of Nice-Sophia Antipolis. See `LICENSE.txt` for details
