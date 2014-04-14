@@ -27,7 +27,7 @@ Next, just declare the dependency:
 <dependency>
    <groupId>btrplace</groupId>
    <artifactId>executor</artifactId>
-   <version>1.0</version>
+   <version>1.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -49,7 +49,7 @@ installed in your local maven repository and available in the `target` sub-folde
 
 ## Documentation ##
 
-* apidoc: http://btrp.inria.fr/apidocs/releases/btrplace/executor/1.0/
+* apidoc: http://btrp.inria.fr/apidocs/snapshots/btrplace/executor/
 
 ## Usage ##
 
