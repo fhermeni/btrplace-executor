@@ -20,7 +20,7 @@ public class MockActuator implements Actuator {
     public void execute() throws ExecutorException {
         System.err.println("Start executing " + a + " " + s);
         try {
-            Thread.sleep((long) (Math.random() * 1000 * (a.getEnd() - a.getStart())));
+            Thread.sleep(250 * (a.getEnd() - a.getStart()));
         } catch (InterruptedException ex) {
             ex.printStackTrace();
             throw new RuntimeException(ex);

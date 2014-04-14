@@ -24,8 +24,8 @@ public class ActuatorRunnerTest {
         mo.getMapping().addOfflineNode(n);
         mo.getMapping().addReadyVM(v);
         ReconfigurationPlan rp = new DefaultReconfigurationPlan(mo);
-        rp.add(new BootNode(n, 0, 3));
-        rp.add(new BootVM(v, n, 2, 4));
+        rp.add(new BootNode(n, 0, 2));
+        rp.add(new BootVM(v, n, 2, 3));
 
         ActuatorFactory af = new ActuatorFactory();
         af.addActuatorBuilder(new ActuatorBuilder<BootNode>() {
@@ -62,7 +62,7 @@ public class ActuatorRunnerTest {
         mo.getMapping().addOfflineNode(n);
         mo.getMapping().addReadyVM(v);
         ReconfigurationPlan rp = new DefaultReconfigurationPlan(mo);
-        rp.add(new BootNode(n, 0, 3));
+        rp.add(new BootNode(n, 0, 2));
         rp.add(new BootVM(v, n, 3, 4));
 
         ActuatorFactory af = new ActuatorFactory();

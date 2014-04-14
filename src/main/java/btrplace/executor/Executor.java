@@ -86,7 +86,6 @@ public class Executor {
      * @param a the actuator that succeeded
      */
     public void commitSuccess(Actuator a) throws ExecutorException {
-        System.err.println("Success for " + a.getAction());
         Set<Action> unblocked = monitor.commit(a.getAction());
         if (unblocked == null) {
             throw new IllegalArgumentException("Action '" + a.getAction() + "' was not applyable in theory !");
@@ -95,7 +94,10 @@ public class Executor {
             synchronized (terminationLock) {
                 terminationLock.notify();
             }
-
+        } else {
+            for (Action newAction : unblocked) {
+                transformAndExecute(newAction);
+            }
         }
     }
 
