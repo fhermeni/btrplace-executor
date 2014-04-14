@@ -70,19 +70,19 @@ perform)
 
     echo "-- Integrate release ${VERSION} into the master branch --"
     git checkout master
-    git merge --no-ff ${RELEASE_BRANCH}~1 -m "integrate release ${VERSION} to master"
+    git merge --no-ff ${DEV_HEAD}~1 -m "integrate release ${VERSION} to master"
 
     git branch -D ${RELEASE_BRANCH}
     git push --all && git push --tags
     git push origin --delete ${RELEASE_BRANCH}
     echo "-- Generate the javadoc for release ${VERSION} --"
-    mvn javadoc:aggregate > /dev/null
-    mvn javadoc:aggregate-jar > /dev/null
-    APIDOC_ROOT="/usr/share/nginx/html/apidocs/releases/btrplace/btrpsl/"
+    mvn javadoc:javadoc > /dev/null
+    mvn javadoc:jar > /dev/null
+    APIDOC_ROOT="/usr/share/nginx/html/apidocs/releases/btrplace/executor/"
     mkdir -p $APIDOC_ROOT > /dev/null
     rm -rf ${APIDOC_ROOT}/${VERSION}
     mv target/site/apidocs ${APIDOC_ROOT}/${VERSION}
-    mv target/btrpsl-${VERSION}-javadoc.jar ${APIDOC_ROOT}/
+    mv target/executor-${VERSION}-javadoc.jar ${APIDOC_ROOT}/
     #Symbolic link to the javadoc, needed by the Wiki
     cd ${APIDOC_ROOT}
     rm -rf last
