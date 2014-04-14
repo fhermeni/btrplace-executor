@@ -47,7 +47,7 @@ public class ActuatorFactory {
      * @param a the associated action.
      * @return {@code true} if the builder has been removed
      */
-    public boolean removeActuatorBuilder(Class<Action> a) {
+    public boolean removeActuatorBuilder(Class<? extends Action> a) {
         return actuators.remove(a) != null;
     }
 
