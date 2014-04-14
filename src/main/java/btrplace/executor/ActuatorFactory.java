@@ -1,7 +1,8 @@
 package btrplace.executor;
 
-import btrplace.plan.event.*;
+import btrplace.plan.event.Action;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -10,7 +11,14 @@ import java.util.Map;
  */
 public class ActuatorFactory {
 
-    private Map<Class<Action>, ActuatorBuilder> actuators;
+    private Map<Class<? extends Action>, ActuatorBuilder> actuators;
+
+    /**
+     * New empty factory.
+     */
+    public ActuatorFactory() {
+        actuators = new HashMap<>();
+    }
 
     /**
      * Get the actuator associated to an action.
@@ -30,7 +38,7 @@ public class ActuatorFactory {
      * This allows the support of custom actuators.
      * @param b the builder to consider.
      */
-    public void addActuatorBuilder(ActuatorBuilder b) {
+    public void addActuatorBuilder(ActuatorBuilder<?> b) {
         actuators.put(b.getAssociatedAction(), b);
     }
 
