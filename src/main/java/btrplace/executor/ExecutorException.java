@@ -3,10 +3,16 @@ package btrplace.executor;
 import btrplace.plan.event.Action;
 
 /**
+ * An exception to signal errors either while mapping an action to an actuator to while executing the action.
  * @author Fabien Hermenier
  */
 public class ExecutorException extends Throwable {
 
+    /**
+     * New exception that announce an action without any compatible actuator.
+     *
+     * @param a the action.
+     */
     public ExecutorException(Action a) {
         super("No actuator available for action '" + a.getClass().getSimpleName() + "'");
     }
