@@ -45,10 +45,17 @@ to make the jar:
 If the build succeeded, the resulting jar will be automatically
 installed in your local maven repository and available in the `target` sub-folder.
 
+## Documentation ##
+
+* apidoc: http://btrp.inria.fr/apidocs/snapshots/btrplace/executor/
+
 ## Usage ##
 
 Have a look at the `Executor` class. You will have to provide custom `actuators` to make the abstract
 actions of BtrPlace fit your environment.
+
+To develop an `Actuator`, you must implement the interface and `ActuatorBuilder`. The second class will
+be provided to the `ActuatorFactory` to create your actuator when a compatible action will have to be executed
 
 ## Copyright ##
 Copyright (c) 2013 University of Nice-Sophia Antipolis. See `LICENSE.txt` for details

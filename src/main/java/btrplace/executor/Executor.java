@@ -58,7 +58,7 @@ public class Executor {
             try {
                 terminationLock.wait();
             } catch (InterruptedException ex) {
-                ex.printStackTrace();
+                throw new RuntimeException(ex);
             }
         }
         if (ex != null) {
@@ -91,8 +91,12 @@ public class Executor {
             throw new IllegalArgumentException("Action '" + a.getAction() + "' was not applyable in theory !");
         }
         if (remaining.decrementAndGet() == 0) {
-            synchronized (terminationLock) {
-                terminationLock.notify();
+            if (unblocked.isEmpty()) {
+                synchronized (terminationLock) {
+                    terminationLock.notify();
+                }
+            } else {
+                throw new ExecutorException(a, " The actuator unblocked actions despite the reconfiguration was supposed to be over");
             }
         } else {
             for (Action newAction : unblocked) {
@@ -107,7 +111,6 @@ public class Executor {
      * @param a the actuator that failed
      */
     public void commitFailure(Actuator a, ExecutorException ex) {
-        System.err.println("Failure for " + a.getAction());
         remaining.decrementAndGet();
         this.ex = ex;
         synchronized (terminationLock) {
