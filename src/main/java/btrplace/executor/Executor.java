@@ -58,7 +58,8 @@ public class Executor {
             try {
                 terminationLock.wait();
             } catch (InterruptedException ex) {
-                throw new RuntimeException(ex);
+                // Restore the interrupted status
+                Thread.currentThread().interrupt();
             }
         }
         if (ex != null) {
