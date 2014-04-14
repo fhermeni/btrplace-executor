@@ -2,9 +2,11 @@
 
 A simple artifact to execute reconfiguration plans.
 
+[![Build Status](http://btrp.inria.fr:8080/jenkins/buildStatus/icon?job=DEV btrplace-executor)](http://btrp.inria.fr:8080/jenkins/job/DEV%20btrplace-executor/)
+
 ## Integration ##
 
-The maven artifacts are in private repositories so you have first to edit your `pom.xml` to declare them:
+This artifact in in a private repository so you have first to edit your `pom.xml` to declare them:
 
 ```xml
 <repositories>
@@ -25,7 +27,7 @@ Next, just declare the dependency:
 <dependency>
    <groupId>btrplace</groupId>
    <artifactId>executor</artifactId>
-   <version>1.0-SNAPSHOT</version>
+   <version>1.0</version>
 </dependency>
 ```
 
@@ -45,10 +47,17 @@ to make the jar:
 If the build succeeded, the resulting jar will be automatically
 installed in your local maven repository and available in the `target` sub-folder.
 
+## Documentation ##
+
+* apidoc: http://btrp.inria.fr/apidocs/releases/btrplace/executor/1.0/
+
 ## Usage ##
 
 Have a look at the `Executor` class. You will have to provide custom `actuators` to make the abstract
 actions of BtrPlace fit your environment.
+
+To develop an `Actuator`, you must implement the interface and `ActuatorBuilder`. The second class will
+be provided to the `ActuatorFactory` to create your actuator when a compatible action will have to be executed
 
 ## Copyright ##
 Copyright (c) 2013 University of Nice-Sophia Antipolis. See `LICENSE.txt` for details

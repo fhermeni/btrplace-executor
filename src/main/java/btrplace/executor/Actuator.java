@@ -11,9 +11,9 @@ public interface Actuator {
     /**
      * Execute the action.
      * The method <b>must be</b> blocking
-     * @throws ActuationException if an error occurred while executing the action.
+     * @throws btrplace.executor.ExecutorException if an error occurred while executing the action.
      */
-    void execute() throws ActuationException;
+    void execute() throws ExecutorException;
 
     /**
      * Get the associated action.

@@ -25,7 +25,7 @@ public class ActuatorRunner extends Thread {
         try {
             a.execute();
             executor.commitSuccess(a);
-        } catch (ActuationException ex) {
+        } catch (ExecutorException ex) {
             executor.commitFailure(a, ex);
         }
     }

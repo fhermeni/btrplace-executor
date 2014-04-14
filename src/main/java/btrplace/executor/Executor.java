@@ -7,16 +7,14 @@ import btrplace.plan.event.Action;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Main class to execute a reconfiguration plan.
  * Action are automatically transformed into actuators.
  * Each actuator is executed in parallel.
  *
- * The executor use a {@link btrplace.plan.ReconfigurationPlanMonitor} to satisfy
- * the possible dependencies between the actions.
+ * The executor relies on a {@link btrplace.plan.ReconfigurationPlanMonitor} to consider
+ * the dependencies between the actions.
  * @author Fabien Hermenier
  */
 public class Executor {
@@ -25,11 +23,11 @@ public class Executor {
 
     private ActuatorFactory drvFactory;
 
-    private Lock terminationLock;
+    private final Object terminationLock;
 
     private AtomicInteger remaining;
 
-    private ActuationException ex;
+    private ExecutorException ex;
 
     private ReconfigurationPlan plan;
 
@@ -42,36 +40,45 @@ public class Executor {
         this.drvFactory = f;
         plan = p;
         remaining = new AtomicInteger(p.getSize());
-        terminationLock = new ReentrantLock();
+        terminationLock = new Object();
         monitor = new DefaultReconfigurationPlanMonitor(plan);
     }
 
     /**
      * Execute the plan.
-     * @throws ActuationException if at least on actuator failed
+     * @throws btrplace.executor.ExecutorException if the execution failed
      */
-    public void execute() throws ActuationException {
+    public void execute() throws ExecutorException {
         for (Action a : plan) {
             if (!monitor.isBlocked(a)) {
                 transformAndExecute(a);
             }
         }
-        terminationLock.lock();
+        synchronized (terminationLock) {
+            try {
+                terminationLock.wait();
+            } catch (InterruptedException ex) {
+                // Restore the interrupted status
+                Thread.currentThread().interrupt();
+            }
+        }
         if (ex != null) {
             throw ex;
         }
     }
 
-    private void transformAndExecute(Action a) {
+    private void transformAndExecute(Action a) throws ExecutorException {
         Actuator actuator = drvFactory.getActuator(a);
         if (actuator != null) {
             execute(actuator);
+        } else {
+            throw new ExecutorException(a);
         }
     }
 
     private void execute(final Actuator a) {
         ActuatorRunner r = new ActuatorRunner(a, this);
-        r.run();
+        r.start();
     }
 
     /**
@@ -79,13 +86,23 @@ public class Executor {
      * The new unblocked actions are executed
      * @param a the actuator that succeeded
      */
-    public void commitSuccess(Actuator a) {
+    public void commitSuccess(Actuator a) throws ExecutorException {
         Set<Action> unblocked = monitor.commit(a.getAction());
-        for (Action newAction : unblocked) {
-            transformAndExecute(newAction);
+        if (unblocked == null) {
+            throw new IllegalArgumentException("Action '" + a.getAction() + "' was not applyable in theory !");
         }
-        if (remaining.getAndDecrement() == 0) {
-            terminationLock.unlock();
+        if (remaining.decrementAndGet() == 0) {
+            if (unblocked.isEmpty()) {
+                synchronized (terminationLock) {
+                    terminationLock.notify();
+                }
+            } else {
+                throw new ExecutorException(a, " The actuator unblocked actions despite the reconfiguration was supposed to be over");
+            }
+        } else {
+            for (Action newAction : unblocked) {
+                transformAndExecute(newAction);
+            }
         }
     }
 
@@ -94,9 +111,12 @@ public class Executor {
      * The plan execution is abort
      * @param a the actuator that failed
      */
-    public void commitFailure(Actuator a, ActuationException ex) {
-        remaining.getAndDecrement();
+    public void commitFailure(Actuator a, ExecutorException ex) {
+        remaining.decrementAndGet();
         this.ex = ex;
-        terminationLock.unlock();
+        synchronized (terminationLock) {
+            terminationLock.notify();
+        }
+
     }
 }
