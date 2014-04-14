@@ -4,7 +4,7 @@ A simple artifact to execute reconfiguration plans.
 
 ## Integration ##
 
-The maven artifacts are in private repositories so you have first to edit your `pom.xml` to declare them:
+This artifact in in a private repository so you have first to edit your `pom.xml` to declare them:
 
 ```xml
 <repositories>
