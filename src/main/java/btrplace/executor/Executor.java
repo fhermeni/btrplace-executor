@@ -1,12 +1,16 @@
 package btrplace.executor;
 
+import btrplace.model.Model;
 import btrplace.plan.DefaultReconfigurationPlanMonitor;
 import btrplace.plan.ReconfigurationPlan;
 import btrplace.plan.ReconfigurationPlanMonitor;
 import btrplace.plan.event.Action;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * Main class to execute a reconfiguration plan.
@@ -18,6 +22,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Fabien Hermenier
  */
 public class Executor {
+
+    /**
+     * The logger to use to report errors.
+     */
+    public static final Logger LOGGER = LoggerFactory.getLogger("Executor");
 
     private ReconfigurationPlanMonitor monitor;
 
@@ -31,6 +40,8 @@ public class Executor {
 
     private ReconfigurationPlan plan;
 
+    private Model currentModel;
+
     /**
      * New instance.
      * @param p the plan to execute
@@ -42,6 +53,7 @@ public class Executor {
         remaining = new AtomicInteger(p.getSize());
         terminationLock = new Object();
         monitor = new DefaultReconfigurationPlanMonitor(plan);
+        currentModel = p.getOrigin().clone();
     }
 
     /**
@@ -68,7 +80,7 @@ public class Executor {
     }
 
     private void transformAndExecute(Action a) throws ExecutorException {
-        Actuator actuator = drvFactory.getActuator(a);
+        Actuator actuator = drvFactory.getActuator(currentModel, a);
         if (actuator != null) {
             execute(actuator);
         } else {
@@ -77,6 +89,7 @@ public class Executor {
     }
 
     private void execute(final Actuator a) {
+        LOGGER.debug("Start " + a.getAction());
         ActuatorRunner r = new ActuatorRunner(a, this);
         r.start();
     }
@@ -85,13 +98,19 @@ public class Executor {
      * Commit the successful execution of an actuator.
      * The new unblocked actions are executed
      * @param a the actuator that succeeded
+     * @throws btrplace.executor.ExecutorException if an error occurred while committing the action or starting the new ones
      */
     public void commitSuccess(Actuator a) throws ExecutorException {
+        if (!a.getAction().apply(currentModel)) {
+            throw new ExecutorException(a, " The action cannot be applied on the simulated model");
+        }
         Set<Action> unblocked = monitor.commit(a.getAction());
         if (unblocked == null) {
-            throw new IllegalArgumentException("Action '" + a.getAction() + "' was not applyable in theory !");
+            throw new IllegalArgumentException("Action " + a.getAction() + "' was not applyable in theory !");
         }
-        if (remaining.decrementAndGet() == 0) {
+        int r = remaining.decrementAndGet();
+        LOGGER.debug("Successful termination for {} ({} remaining)", a.getAction(), r);
+        if (r == 0) {
             if (unblocked.isEmpty()) {
                 synchronized (terminationLock) {
                     terminationLock.notify();
@@ -110,8 +129,10 @@ public class Executor {
      * Commit the un-successful execution of an actuator.
      * The plan execution is abort
      * @param a the actuator that failed
+     * @param ex the exception that caused the failure
      */
     public void commitFailure(Actuator a, ExecutorException ex) {
+        LOGGER.debug("Failure for {}", a.getAction());
         remaining.decrementAndGet();
         this.ex = ex;
         synchronized (terminationLock) {

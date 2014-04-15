@@ -8,6 +8,7 @@ import btrplace.plan.DefaultReconfigurationPlan;
 import btrplace.plan.ReconfigurationPlan;
 import btrplace.plan.event.BootNode;
 import btrplace.plan.event.BootVM;
+import junit.framework.Assert;
 import org.testng.annotations.Test;
 
 
@@ -15,6 +16,43 @@ import org.testng.annotations.Test;
  * @author Fabien Hermenier
  */
 public class ActuatorRunnerTest {
+
+    private static ActuatorBuilder<BootVM> bootVMOk = new ActuatorBuilder<BootVM>() {
+        @Override
+        public Class<BootVM> getAssociatedAction() {
+            return BootVM.class;
+        }
+
+        @Override
+        public Actuator build(Model src, BootVM action) throws ExecutorException {
+            Assert.assertTrue(src.getMapping().isOnline(action.getDestinationNode()));
+            return new MockActuator(action, true);
+        }
+    };
+
+    private static ActuatorBuilder<BootNode> bootNodeOk = new ActuatorBuilder<BootNode>() {
+        @Override
+        public Class<BootNode> getAssociatedAction() {
+            return BootNode.class;
+        }
+
+        @Override
+        public Actuator build(Model src, BootNode action) throws ExecutorException {
+            return new MockActuator(action, true);
+        }
+    };
+
+    private static ActuatorBuilder<BootNode> bootNodeNo = new ActuatorBuilder<BootNode>() {
+        @Override
+        public Class<BootNode> getAssociatedAction() {
+            return BootNode.class;
+        }
+
+        @Override
+        public Actuator build(Model src, BootNode action) throws ExecutorException {
+            return new MockActuator(action, false);
+        }
+    };
 
     @Test
     public void testSuccess() throws ExecutorException {
@@ -28,28 +66,8 @@ public class ActuatorRunnerTest {
         rp.add(new BootVM(v, n, 2, 3));
 
         ActuatorFactory af = new ActuatorFactory();
-        af.addActuatorBuilder(new ActuatorBuilder<BootNode>() {
-            @Override
-            public Class<BootNode> getAssociatedAction() {
-                return BootNode.class;
-            }
-
-            @Override
-            public Actuator build(BootNode action) {
-                return new MockActuator(action, true);
-            }
-        });
-        af.addActuatorBuilder(new ActuatorBuilder<BootVM>() {
-            @Override
-            public Class<BootVM> getAssociatedAction() {
-                return BootVM.class;
-            }
-
-            @Override
-            public Actuator build(BootVM action) {
-                return new MockActuator(action, true);
-            }
-        });
+        af.addActuatorBuilder(bootNodeOk);
+        af.addActuatorBuilder(bootVMOk);
         Executor ex = new Executor(rp, af);
         ex.execute();
     }
@@ -66,28 +84,8 @@ public class ActuatorRunnerTest {
         rp.add(new BootVM(v, n, 3, 4));
 
         ActuatorFactory af = new ActuatorFactory();
-        af.addActuatorBuilder(new ActuatorBuilder<BootNode>() {
-            @Override
-            public Class<BootNode> getAssociatedAction() {
-                return BootNode.class;
-            }
-
-            @Override
-            public Actuator build(BootNode action) {
-                return new MockActuator(action, false);
-            }
-        });
-        af.addActuatorBuilder(new ActuatorBuilder<BootVM>() {
-            @Override
-            public Class<BootVM> getAssociatedAction() {
-                return BootVM.class;
-            }
-
-            @Override
-            public Actuator build(BootVM action) {
-                return new MockActuator(action, true);
-            }
-        });
+        af.addActuatorBuilder(bootNodeNo);
+        af.addActuatorBuilder(bootVMOk);
         Executor ex = new Executor(rp, af);
         ex.execute();
     }

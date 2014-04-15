@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
 public class ActuatorFactoryTest {
 
     @Test
-    public void testAddAndRemove() {
+    public void testAddAndRemove() throws ExecutorException {
         ActuatorFactory f = new ActuatorFactory();
         f.addActuatorBuilder(new ActuatorBuilder<BootNode>() {
             @Override
@@ -23,27 +23,27 @@ public class ActuatorFactoryTest {
             }
 
             @Override
-            public Actuator build(BootNode action) {
+            public Actuator build(Model mo, BootNode action) {
                 return new MockActuator(action, true);
             }
         });
 
         Model mo = new DefaultModel();
         BootNode bn = new BootNode(mo.newNode(), 0, 3);
-        Actuator a = f.getActuator(bn);
+        Actuator a = f.getActuator(mo, bn);
         Assert.assertNotNull(a);
         Assert.assertEquals(a.getAction(), bn);
 
         Assert.assertTrue(f.removeActuatorBuilder(BootNode.class));
         Assert.assertFalse(f.removeActuatorBuilder(BootNode.class));
-        a = f.getActuator(bn);
+        a = f.getActuator(mo, bn);
         Assert.assertNull(a);
     }
 
     @Test
-    public void testGetUnknown() {
+    public void testGetUnknown() throws ExecutorException {
         ActuatorFactory f = new ActuatorFactory();
         Model mo = new DefaultModel();
-        Assert.assertNull(f.getActuator(new BootNode(mo.newNode(), 0, 3)));
+        Assert.assertNull(f.getActuator(mo, new BootNode(mo.newNode(), 0, 3)));
     }
 }
