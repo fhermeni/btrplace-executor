@@ -32,9 +32,7 @@ public class Executor {
      */
     public static final Logger LOGGER = LoggerFactory.getLogger("Executor");
 
-    /**
-     * To get the blocked/unblocked actions.
-     */
+    /** To get the blocked/unblocked actions. */
     private ReconfigurationPlanMonitor monitor;
 
     /** To map each action to an actuator. */
@@ -43,31 +41,27 @@ public class Executor {
     /** Lock that block the main thread until all the actions terminated or failed.*/
     private final Object terminationLock;
 
-    /**
-     * The number of actuators that has been launched so far.
-     */
+    /** The number of actuators that has been launched so far. */
     private AtomicInteger launched;
 
+    /** The first error received. Will be re-thrown to the caller. */
     private ExecutorException ex;
 
+    /** The plan to apply. */
     private ReconfigurationPlan plan;
 
     /** The model that will be upgraded each time an action is committed. */
     private Model currentModel;
 
-    /**
-     * The timer that will store all the pending timeouts.
-     */
+    /** The timer that will store all the pending timeouts. */
     private Timer timer;
 
     /**
      * The tasks that are terminated or pending.
      */
-    private TimerTask [] inProgress;
+    private final TimerTask[] inProgress;
 
-    /**
-     * Number of milliseconds in a second.
-     */
+    /** Number of milliseconds in a second. */
     public static final int SECONDS = 1000;
 
     /**
@@ -112,8 +106,10 @@ public class Executor {
     private void transformAndExecute(Action a) throws ExecutorException {
         final Actuator actuator = drvFactory.getActuator(currentModel, a);
         if (actuator != null) {
-            execute(actuator);
-            final int i = launched.incrementAndGet();
+            //Get the id of the task.
+            final int i = launched.getAndIncrement();
+            //We must start the execution before starting the timer in case of a 0-second timeout.
+            execute(i, actuator);
             TimerTask t = new TimerTask() {
                 @Override
                 public void run() {
@@ -127,22 +123,36 @@ public class Executor {
         }
     }
 
-    private void execute(final Actuator a) {
+    private void execute(final int i, final Actuator a) {
         LOGGER.debug("Start " + a.getAction());
-        ActuatorRunner r = new ActuatorRunner(a, this);
-        r.start();
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    a.execute();
+                    commitSuccess(i, a);
+                } catch (ExecutorException ex) {
+                    commitFailure(i, a, ex);
+                }
+            }
+        }.start();
     }
 
     /**
      * Commit the successful execution of an actuator.
      * The new unblocked actions are executed
+     * @param id the timeout identifier
      * @param a the actuator that succeeded
      * @throws btrplace.executor.ExecutorException if an error occurred while committing the action or starting the new ones
      */
-    public void commitSuccess(Actuator a) throws ExecutorException {
+    private void commitSuccess(int id, Actuator a) throws ExecutorException {
         if (!a.getAction().apply(currentModel)) {
             throw new ExecutorException(a, " The action cannot be applied on the simulated model");
         }
+
+        //Stop the timer
+        TimerTask t = inProgress[id];
+        t.cancel();
         Set<Action> unblocked = monitor.commit(a.getAction());
         if (unblocked == null) {
             throw new IllegalArgumentException("Action " + a.getAction() + "' was not applyable in theory !");
@@ -150,12 +160,14 @@ public class Executor {
         int r = plan.getSize() - launched.get();
         LOGGER.debug("Successful termination for {} ({} remaining)", a.getAction(), r);
         if (r == 0) {
+            //Everything is ok. Cancel the timers
             timer.cancel();
             if (unblocked.isEmpty()) {
                 synchronized (terminationLock) {
                     terminationLock.notify();
                 }
             } else {
+                //Should not occur. Should reveal a bug in the reconfiguration monitor
                 throw new ExecutorException(a, " The actuator unblocked actions despite the reconfiguration was supposed to be over");
             }
         } else {
@@ -165,22 +177,27 @@ public class Executor {
         }
     }
 
+    /**
+     * Commit a timeout.
+     * @param a the actuator that succeeded
+     * @param id the timeout identifier
+     */
     private void commitTimeout(Actuator a, int id) {
         LOGGER.debug("Timeout for {}", a.getAction());
-        TimerTask t = inProgress[id];
-        t.cancel();
-        timer.purge();
-        commitFailure(a, new ExecutorException(a, "the actuator did not response before its timeout (" + a.getTimeout() + " sec.)"));
+        commitFailure(id, a, new ExecutorException(a, "the actuator did not response before its timeout (" + a.getTimeout() + " sec.)"));
     }
 
     /**
      * Commit the un-successful execution of an actuator.
      * The plan execution is abort
+     * @param id the timeout identifier
      * @param a the actuator that failed
      * @param ex the exception that caused the failure
      */
-    public void commitFailure(Actuator a, ExecutorException ex) {
+    private void commitFailure(int id, Actuator a, ExecutorException ex) {
         LOGGER.debug("Failure for {}", a.getAction());
+        TimerTask t = inProgress[id];
+        t.cancel();
         this.ex = ex;
         synchronized (terminationLock) {
             terminationLock.notify();
