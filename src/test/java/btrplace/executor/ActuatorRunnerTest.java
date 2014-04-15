@@ -26,31 +26,7 @@ public class ActuatorRunnerTest {
         @Override
         public Actuator build(Model src, BootVM action) throws ExecutorException {
             Assert.assertTrue(src.getMapping().isOnline(action.getDestinationNode()));
-            return new MockActuator(action, true);
-        }
-    };
-
-    private static ActuatorBuilder<BootNode> bootNodeOk = new ActuatorBuilder<BootNode>() {
-        @Override
-        public Class<BootNode> getAssociatedAction() {
-            return BootNode.class;
-        }
-
-        @Override
-        public Actuator build(Model src, BootNode action) throws ExecutorException {
-            return new MockActuator(action, true);
-        }
-    };
-
-    private static ActuatorBuilder<BootNode> bootNodeNo = new ActuatorBuilder<BootNode>() {
-        @Override
-        public Class<BootNode> getAssociatedAction() {
-            return BootNode.class;
-        }
-
-        @Override
-        public Actuator build(Model src, BootNode action) throws ExecutorException {
-            return new MockActuator(action, false);
+            return new MockActuator(action, 10, true);
         }
     };
 
@@ -66,7 +42,7 @@ public class ActuatorRunnerTest {
         rp.add(new BootVM(v, n, 2, 3));
 
         ActuatorFactory af = new ActuatorFactory();
-        af.addActuatorBuilder(bootNodeOk);
+        af.addActuatorBuilder(new MockBootNodeBuilder(10, true));
         af.addActuatorBuilder(bootVMOk);
         Executor ex = new Executor(rp, af);
         ex.execute();
@@ -84,7 +60,25 @@ public class ActuatorRunnerTest {
         rp.add(new BootVM(v, n, 3, 4));
 
         ActuatorFactory af = new ActuatorFactory();
-        af.addActuatorBuilder(bootNodeNo);
+        af.addActuatorBuilder(new MockBootNodeBuilder(10, false));
+        af.addActuatorBuilder(bootVMOk);
+        Executor ex = new Executor(rp, af);
+        ex.execute();
+    }
+
+    @Test(expectedExceptions = {ExecutorException.class})
+    public void testTimeout() throws ExecutorException {
+        Model mo = new DefaultModel();
+        Node n = mo.newNode();
+        VM v = mo.newVM();
+        mo.getMapping().addOfflineNode(n);
+        mo.getMapping().addReadyVM(v);
+        ReconfigurationPlan rp = new DefaultReconfigurationPlan(mo);
+        rp.add(new BootNode(n, 0, 2));
+        rp.add(new BootVM(v, n, 3, 4));
+
+        ActuatorFactory af = new ActuatorFactory();
+        af.addActuatorBuilder(new MockBootNodeBuilder(0, true));
         af.addActuatorBuilder(bootVMOk);
         Executor ex = new Executor(rp, af);
         ex.execute();

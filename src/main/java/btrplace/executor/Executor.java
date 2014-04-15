@@ -8,7 +8,7 @@ import btrplace.plan.event.Action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * The executor relies on a {@link btrplace.plan.ReconfigurationPlanMonitor} to consider
  * the dependencies between the actions.
+ *
+ * If an actuator does not respond in time or signal an error, the execution fails.
  * @author Fabien Hermenier
  */
 public class Executor {
@@ -42,6 +44,15 @@ public class Executor {
 
     private Model currentModel;
 
+    private Timer timers;
+
+    private Map<Actuator, TimerTask> runnings;
+
+    /**
+     * Number of milliseconds in a second.
+     */
+    public static final int SECONDS = 1000;
+
     /**
      * New instance.
      * @param p the plan to execute
@@ -54,6 +65,8 @@ public class Executor {
         terminationLock = new Object();
         monitor = new DefaultReconfigurationPlanMonitor(plan);
         currentModel = p.getOrigin().clone();
+        timers = new Timer();
+        runnings = new HashMap<>();
     }
 
     /**
@@ -80,9 +93,17 @@ public class Executor {
     }
 
     private void transformAndExecute(Action a) throws ExecutorException {
-        Actuator actuator = drvFactory.getActuator(currentModel, a);
+        final Actuator actuator = drvFactory.getActuator(currentModel, a);
         if (actuator != null) {
             execute(actuator);
+            TimerTask t = new TimerTask() {
+                @Override
+                public void run() {
+                    commitTimeout(actuator);
+                }
+            };
+            runnings.put(actuator, t);
+            timers.schedule(t, actuator.getTimeout() * SECONDS);
         } else {
             throw new ExecutorException(a);
         }
@@ -111,6 +132,7 @@ public class Executor {
         int r = remaining.decrementAndGet();
         LOGGER.debug("Successful termination for {} ({} remaining)", a.getAction(), r);
         if (r == 0) {
+            timers.cancel();
             if (unblocked.isEmpty()) {
                 synchronized (terminationLock) {
                     terminationLock.notify();
@@ -123,6 +145,14 @@ public class Executor {
                 transformAndExecute(newAction);
             }
         }
+    }
+
+    private void commitTimeout(Actuator a) {
+        LOGGER.debug("Timeout for {}", a.getAction());
+        TimerTask t = runnings.get(a);
+        t.cancel();
+        timers.purge();
+        commitFailure(a, new ExecutorException(a, "the actuator did not response before its timeout (" + a.getTimeout() + " sec.)"));
     }
 
     /**

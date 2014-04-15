@@ -24,7 +24,7 @@ public class ActuatorFactoryTest {
 
             @Override
             public Actuator build(Model mo, BootNode action) {
-                return new MockActuator(action, true);
+                return new MockActuator(action, 10, true);
             }
         });
 

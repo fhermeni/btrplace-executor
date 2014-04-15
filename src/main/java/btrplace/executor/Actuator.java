@@ -20,4 +20,11 @@ public interface Actuator {
      * @return an action. Cannot be {@code null}
      */
     Action getAction();
+
+    /**
+     * Get the maximum action duration.
+     *
+     * @return a time in second.
+     */
+    int getTimeout();
 }
