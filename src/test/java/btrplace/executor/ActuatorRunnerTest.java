@@ -26,7 +26,7 @@ public class ActuatorRunnerTest {
         @Override
         public Actuator build(Model src, BootVM action) throws ExecutorException {
             Assert.assertTrue(src.getMapping().isOnline(action.getDestinationNode()));
-            return new MockActuator(action, 10, true);
+            return new MockActuator(action, 5, true);
         }
     };
 
@@ -42,7 +42,7 @@ public class ActuatorRunnerTest {
         rp.add(new BootVM(v, n, 2, 3));
 
         ActuatorFactory af = new ActuatorFactory();
-        af.addActuatorBuilder(new MockBootNodeBuilder(10, true));
+        af.addActuatorBuilder(new MockBootNodeBuilder(5, true));
         af.addActuatorBuilder(bootVMOk);
         Executor ex = new Executor(rp, af);
         ex.execute();
@@ -60,7 +60,7 @@ public class ActuatorRunnerTest {
         rp.add(new BootVM(v, n, 3, 4));
 
         ActuatorFactory af = new ActuatorFactory();
-        af.addActuatorBuilder(new MockBootNodeBuilder(10, false));
+        af.addActuatorBuilder(new MockBootNodeBuilder(5, false));
         af.addActuatorBuilder(bootVMOk);
         Executor ex = new Executor(rp, af);
         ex.execute();

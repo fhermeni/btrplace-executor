@@ -85,21 +85,27 @@ public class Executor {
      * @throws btrplace.executor.ExecutorException if the execution failed
      */
     public void execute() throws ExecutorException {
-        for (Action a : plan) {
-            if (!monitor.isBlocked(a)) {
-                transformAndExecute(a);
+        try {
+            for (Action a : plan) {
+                if (!monitor.isBlocked(a)) {
+                    transformAndExecute(a);
+                }
             }
-        }
-        synchronized (terminationLock) {
-            try {
-                terminationLock.wait();
-            } catch (InterruptedException ex) {
-                // Restore the interrupted status
-                Thread.currentThread().interrupt();
+            synchronized (terminationLock) {
+                try {
+                    terminationLock.wait();
+                } catch (InterruptedException ex) {
+                    // Restore the interrupted status
+                    Thread.currentThread().interrupt();
+                }
             }
-        }
-        if (ex != null) {
-            throw ex;
+            //Everything is ok. Cancel the timers
+            timer.cancel();
+            if (ex != null) {
+                throw ex;
+            }
+        } finally {
+            timer.cancel();
         }
     }
 
@@ -160,8 +166,6 @@ public class Executor {
         int r = plan.getSize() - launched.get();
         LOGGER.debug("Successful termination for {} ({} remaining)", a.getAction(), r);
         if (r == 0) {
-            //Everything is ok. Cancel the timers
-            timer.cancel();
             if (unblocked.isEmpty()) {
                 synchronized (terminationLock) {
                     terminationLock.notify();
@@ -170,10 +174,9 @@ public class Executor {
                 //Should not occur. Should reveal a bug in the reconfiguration monitor
                 throw new ExecutorException(a, " The actuator unblocked actions despite the reconfiguration was supposed to be over");
             }
-        } else {
-            for (Action newAction : unblocked) {
-                transformAndExecute(newAction);
-            }
+        }
+        for (Action newAction : unblocked) {
+            transformAndExecute(newAction);
         }
     }
 
