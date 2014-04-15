@@ -49,7 +49,8 @@ installed in your local maven repository and available in the `target` sub-folde
 
 ## Documentation ##
 
-* apidoc: http://btrp.inria.fr/apidocs/snapshots/btrplace/executor/
+* releases: http://btrp.inria.fr/executor/ (`apidocs` always refers to the last release)
+* snapshot-releases: http://btrp.inria.fr/executor/apidocs-snapshot
 
 ## Usage ##
 
