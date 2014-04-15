@@ -8,7 +8,9 @@ import btrplace.plan.event.Action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -30,23 +32,38 @@ public class Executor {
      */
     public static final Logger LOGGER = LoggerFactory.getLogger("Executor");
 
+    /**
+     * To get the blocked/unblocked actions.
+     */
     private ReconfigurationPlanMonitor monitor;
 
+    /** To map each action to an actuator. */
     private ActuatorFactory drvFactory;
 
+    /** Lock that block the main thread until all the actions terminated or failed.*/
     private final Object terminationLock;
 
-    private AtomicInteger remaining;
+    /**
+     * The number of actuators that has been launched so far.
+     */
+    private AtomicInteger launched;
 
     private ExecutorException ex;
 
     private ReconfigurationPlan plan;
 
+    /** The model that will be upgraded each time an action is committed. */
     private Model currentModel;
 
-    private Timer timers;
+    /**
+     * The timer that will store all the pending timeouts.
+     */
+    private Timer timer;
 
-    private Map<Actuator, TimerTask> runnings;
+    /**
+     * The tasks that are terminated or pending.
+     */
+    private TimerTask [] inProgress;
 
     /**
      * Number of milliseconds in a second.
@@ -61,12 +78,12 @@ public class Executor {
     public Executor(ReconfigurationPlan p, ActuatorFactory f) {
         this.drvFactory = f;
         plan = p;
-        remaining = new AtomicInteger(p.getSize());
+        launched = new AtomicInteger(0);
         terminationLock = new Object();
         monitor = new DefaultReconfigurationPlanMonitor(plan);
         currentModel = p.getOrigin().clone();
-        timers = new Timer();
-        runnings = new HashMap<>();
+        timer = new Timer();
+        inProgress = new TimerTask[p.getSize()];
     }
 
     /**
@@ -96,14 +113,15 @@ public class Executor {
         final Actuator actuator = drvFactory.getActuator(currentModel, a);
         if (actuator != null) {
             execute(actuator);
+            final int i = launched.incrementAndGet();
             TimerTask t = new TimerTask() {
                 @Override
                 public void run() {
-                    commitTimeout(actuator);
+                    commitTimeout(actuator, i);
                 }
             };
-            runnings.put(actuator, t);
-            timers.schedule(t, actuator.getTimeout() * SECONDS);
+            inProgress[i] = t;
+            timer.schedule(t, actuator.getTimeout() * SECONDS);
         } else {
             throw new ExecutorException(a);
         }
@@ -129,10 +147,10 @@ public class Executor {
         if (unblocked == null) {
             throw new IllegalArgumentException("Action " + a.getAction() + "' was not applyable in theory !");
         }
-        int r = remaining.decrementAndGet();
+        int r = plan.getSize() - launched.get();
         LOGGER.debug("Successful termination for {} ({} remaining)", a.getAction(), r);
         if (r == 0) {
-            timers.cancel();
+            timer.cancel();
             if (unblocked.isEmpty()) {
                 synchronized (terminationLock) {
                     terminationLock.notify();
@@ -147,11 +165,11 @@ public class Executor {
         }
     }
 
-    private void commitTimeout(Actuator a) {
+    private void commitTimeout(Actuator a, int id) {
         LOGGER.debug("Timeout for {}", a.getAction());
-        TimerTask t = runnings.get(a);
+        TimerTask t = inProgress[id];
         t.cancel();
-        timers.purge();
+        timer.purge();
         commitFailure(a, new ExecutorException(a, "the actuator did not response before its timeout (" + a.getTimeout() + " sec.)"));
     }
 
@@ -163,11 +181,9 @@ public class Executor {
      */
     public void commitFailure(Actuator a, ExecutorException ex) {
         LOGGER.debug("Failure for {}", a.getAction());
-        remaining.decrementAndGet();
         this.ex = ex;
         synchronized (terminationLock) {
             terminationLock.notify();
         }
-
     }
 }
