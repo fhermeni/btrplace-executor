@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Main class to execute a reconfiguration plan.
  * Action are automatically transformed into actuators.
- * Each actuator is executed in parallel.
+ * Each actuator is executed inside its own Thread.
  *
  * The executor relies on a {@link btrplace.plan.ReconfigurationPlanMonitor} to consider
  * the dependencies between the actions.
