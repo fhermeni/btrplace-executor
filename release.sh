@@ -76,7 +76,6 @@ perform)
     git merge --no-ff ${DEV_HEAD}~1 -m "integrate release ${VERSION} to master"
 
     echo "-- Push the changes and the tags --"
-    git branch -D ${RELEASE_BRANCH}
     git push --all && git push --tags
     git push origin --delete ${RELEASE_BRANCH}
     echo "-- Generate the javadoc for release ${VERSION} --"
