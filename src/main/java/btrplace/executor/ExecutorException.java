@@ -18,6 +18,24 @@ public class ExecutorException extends Throwable {
     }
 
     /**
+     * Generic exception that re-throw an error.
+     * @param t the throwable to re-throw
+     */
+    public ExecutorException(Throwable t) {
+        super(t);
+    }
+
+    /**
+     * Generic exception that re-throw an error.
+     *
+     * @param msg the error message
+     * @param t   the throwable to re-throw
+     */
+    public ExecutorException(String msg, Throwable t) {
+        super(msg, t);
+    }
+
+    /**
      * New exception.
      *
      * @param a   the involved actuator
