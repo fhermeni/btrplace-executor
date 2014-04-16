@@ -11,7 +11,10 @@ public class MockActuator implements Actuator {
 
     private Action a;
 
-    public MockActuator(Action a, boolean s) {
+    private int to;
+
+    public MockActuator(Action a, int to, boolean s) {
+        this.to = to;
         this.s = s;
         this.a = a;
     }
@@ -34,5 +37,10 @@ public class MockActuator implements Actuator {
     @Override
     public Action getAction() {
         return a;
+    }
+
+    @Override
+    public int getTimeout() {
+        return to;
     }
 }

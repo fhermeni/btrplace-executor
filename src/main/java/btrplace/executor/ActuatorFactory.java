@@ -1,5 +1,6 @@
 package btrplace.executor;
 
+import btrplace.model.Model;
 import btrplace.plan.event.Action;
 
 import java.util.HashMap;
@@ -22,15 +23,17 @@ public class ActuatorFactory {
 
     /**
      * Get the actuator associated to an action.
+     * @param src the model that is modified by the action.
      * @param a the action.
      * @return the right actuator if any, {@code null} otherwise
+     * @throws ExecutorException if an error prevent for building an actuator.
      */
-    public Actuator getActuator(Action a) {
+    public Actuator getActuator(Model src, Action a) throws ExecutorException {
         ActuatorBuilder builder = actuators.get(a.getClass());
         if (builder == null) {
             return null;
         }
-        return builder.build(a);
+        return builder.build(src, a);
     }
 
     /**
