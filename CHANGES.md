@@ -1,5 +1,6 @@
 version ????????
 -------------
+- minor fix for the exception.
 
 version 1.1 - 16 Apr 2014
 -------------
