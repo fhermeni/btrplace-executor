@@ -1,3 +1,7 @@
+version 1.1.1 - 16 Apr 2014
+-------------
+- minor fix for the exception.
+
 version 1.1 - 16 Apr 2014
 -------------
 - fix release.sh
