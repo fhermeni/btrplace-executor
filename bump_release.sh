@@ -17,8 +17,9 @@ if [ $# -ne 2 ]; then
 fi
 VERSION=$2
 REPO_URL="http://btrp.inria.fr/repos"
-APIDOC_URL="http://btrp.inria.fr/apidocs"
-
+ARTIFACT_ID="executor"
+REPO_NAME="btrplace-${ARTIFACT_ID}"
+APIDOC_URL="http://btrp.inria.fr/${ARTIFACT_ID}/${VERSION}"
 case $1	in
 
 site)	
@@ -26,10 +27,10 @@ site)
 
 	JSON="{\"version\":\"$VERSION\",\	
 	\"title\":\"executor\",\
-	\"apidoc\":\"$APIDOC_URL/releases/btrplace/executor/$VERSION/\",\
-	\"changelog\":\"https://github.com/fhermeni/btrplace-executor/tree/btrplace-executor-$VERSION/CHANGES.md\",\
-	\"binary\":\"$REPO_URL/releases/btrplace/btrplace-executor/$VERSION/btrplace-executor-$VERSION.jar\",\
-	\"sources\":\"https://github.com/fhermeni/btrplace-executor/tree/btrplace-executor-$VERSION\"
+	\"apidoc\":\"$APIDOC_URL\",\
+	\"changelog\":\"https://github.com/fhermeni/btrplace-${ARTIFACT_ID}/tree/btrplace-${ARTIFACT_ID}-$VERSION/CHANGES.md\",\
+	\"binary\":\"$REPO_URL/releases/btrplace/btrplace-${ARTIFACT_ID}/$VERSION/btrplace-${ARTIFACT_ID}-$VERSION.jar\",\
+	\"sources\":\"https://github.com/fhermeni/btrplace-${ARTIFACT_ID}/tree/btrplace-${ARTIFACT_ID}-$VERSION\"
 	}"
 	curl -X POST --data "data=$JSON" $WWW_HOOK
 	;;
@@ -39,17 +40,6 @@ code)
 	# Update of the version number for maven usage	
 		
 	sedInPlace "s%<version>.*</version>%<version>$VERSION</version>%"  README.md
-	
-	snapshot=0
-	echo $VERSION | grep "\-SNAPSHOT$" > /dev/null && snapshot=1
-
-	if [ $snapshot = 0 ]; then 
-		# Update the bundle and the apidoc location
-		sedInPlace "s%$APIDOC_URL/.*%$APIDOC_URL/releases/btrplace/executor/$VERSION/%" README.md
-	else 
-		# Update the bundle and the apidoc location
-		sedInPlace "s%$APIDOC_URL/.*%$APIDOC_URL/snapshots/btrplace/executor/%" README.md
-	fi
 
 	## The CHANGES.md file
 	d=`LANG=en_US.utf8 date +"%d %b %Y"`

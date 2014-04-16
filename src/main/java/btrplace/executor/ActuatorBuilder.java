@@ -1,5 +1,6 @@
 package btrplace.executor;
 
+import btrplace.model.Model;
 import btrplace.plan.event.Action;
 
 /**
@@ -17,8 +18,10 @@ public interface ActuatorBuilder<A extends Action> {
 
     /**
      * Build an actuator that will manage the action
+     * @param src the model that is modified by the action.
      * @param action the action to manage
      * @return the appropriate actuator
+     * @throws btrplace.executor.ExecutorException if an error occurred while building the actuator
      */
-    Actuator build(A action);
+    Actuator build(Model src, A action) throws ExecutorException;
 }

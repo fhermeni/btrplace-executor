@@ -1,5 +1,8 @@
 #!/bin/sh
 
+#Few global variables
+APIDOC_ROOT="/usr/share/nginx/html/apidocs/releases/btrplace/executor/"
+ARTIFACT_ID="executor"
 
 if [ $# != 1 ]; then
     echo "Usage: $0 request|perform"
@@ -70,24 +73,15 @@ perform)
 
     echo "-- Integrate release ${VERSION} into the master branch --"
     git checkout master
-    git merge --no-ff ${RELEASE_BRANCH}~1 -m "integrate release ${VERSION} to master"
+    git merge --no-ff ${DEV_HEAD}~1 -m "integrate release ${VERSION} to master"
 
+    echo "-- Push the changes and the tags --"
     git branch -D ${RELEASE_BRANCH}
     git push --all && git push --tags
     git push origin --delete ${RELEASE_BRANCH}
     echo "-- Generate the javadoc for release ${VERSION} --"
-    mvn javadoc:aggregate > /dev/null
-    mvn javadoc:aggregate-jar > /dev/null
-    APIDOC_ROOT="/usr/share/nginx/html/apidocs/releases/btrplace/btrpsl/"
-    mkdir -p $APIDOC_ROOT > /dev/null
-    rm -rf ${APIDOC_ROOT}/${VERSION}
-    mv target/site/apidocs ${APIDOC_ROOT}/${VERSION}
-    mv target/btrpsl-${VERSION}-javadoc.jar ${APIDOC_ROOT}/
-    #Symbolic link to the javadoc, needed by the Wiki
-    cd ${APIDOC_ROOT}
-    rm -rf last
-    ln -s ${VERSION} last
-    cd -
+    ./release_javadoc.sh /usr/share/nginx/html
+
 
     echo "-- Notify the website for release ${VERSION} --"
     ./bump_release.sh site ${VERSION}
